@@ -7,29 +7,51 @@
 #include <math.h>
 
 #ifndef MAX_STATE
-#	define MAX_STATE	10
+#	define MAX_STATE 10
 #endif
 
 #ifndef MAX_OBSERV
-#	define MAX_OBSERV	26
+#	define MAX_OBSERV 26
 #endif
 
 #ifndef MAX_SEQ
-#	define	MAX_SEQ		200
+#	define	MAX_SEQ 200
 #endif
 
 #ifndef MAX_LINE
-#	define MAX_LINE 	256
+#	define MAX_LINE 256
+#endif
+
+// Define the maximun line in a data file
+#ifndef MAX_DATA_LINE
+#	define MAX_DATA_LINE	10000
 #endif
 
 typedef struct{
    char *model_name;
    int state_num;					//number of state
    int observ_num;					//number of observation
-   double initial[MAX_STATE];			//initial prob.
-   double transition[MAX_STATE][MAX_STATE];	//transition prob.
-   double observation[MAX_OBSERV][MAX_STATE];	//observation prob.
+   double initial[MAX_STATE];			//initial prob.(pi)
+   double transition[MAX_STATE][MAX_STATE];	//transition prob.(a)
+   double observation[MAX_OBSERV][MAX_STATE];	//observation prob.(b)
 } HMM;
+
+typedef struct{
+   int seq_num;
+   int obs[MAX_SEQ];
+} Observ;
+
+typedef struct{
+   int seq_num;
+   int state_num;
+   double variable[MAX_SEQ][MAX_STATE];
+} Variable;
+
+typedef struct{
+   int seq_num;
+   int state_num;
+   double variable[MAX_SEQ][MAX_STATE][MAX_STATE];
+} Epsilon;
 
 static FILE *open_or_die( const char *filename, const char *ht )
 {
@@ -131,4 +153,56 @@ static void dump_models( HMM *hmm, const int num )
    }
 }
 
+static int fetch_data(Observ *observs, const char *filename)
+{
+   FILE *fp = open_or_die( filename, "r" );
+
+   char token[MAX_LINE] = "";
+   int line = 0, i, idx;
+
+   while( fscanf( fp, "%s", token ) > 0 )
+   {
+      if( token[0] == '\0' || token[0] == '\n' ) continue;
+
+      for( i = 0 ; i < MAX_LINE ; i++ ){
+         switch (token[i]) {
+            case 'A':
+               idx = 0;
+               break;
+            case 'B':
+               idx = 1;
+               break;
+            case 'C':
+               idx = 2;
+               break;
+            case 'D':
+               idx = 3;
+               break;
+            case 'E':
+               idx = 4;
+               break;
+            case 'F':
+               idx = 5;
+               break;
+            default:
+               idx = -1;
+               break;
+
+         }
+
+         if (idx == -1){
+            observs[line].seq_num = i;
+            line++;
+            break;
+         }
+         
+         observs[line].obs[i] = idx;
+      }
+   }
+
+   fclose(fp);
+   return line;
+
+}
 #endif
+

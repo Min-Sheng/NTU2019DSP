@@ -3,9 +3,9 @@
 #include <math.h>
 #include <stdlib.h>
 
-Observ data[MAX_DATA_LINE];
-Variable alpha[MAX_DATA_LINE], beta[MAX_DATA_LINE], gamma[MAX_DATA_LINE];
-Epsilon epsilon[MAX_DATA_LINE];
+Observ data[MAX_SAMPLE_NUM];
+Variable alpha[MAX_SAMPLE_NUM], beta[MAX_SAMPLE_NUM], _gamma[MAX_SAMPLE_NUM]; // each is N*T matrix array (total shape is M*N*T, where L means number of samples)
+Epsilon epsilon[MAX_SAMPLE_NUM]; // it's a (T-1)*N*N matrix array (total shape is M*N*T, where M means number of samples)
 
 // Forward algorithm
 void forward_algorithm(HMM *hmm, Observ *observ, Variable *alpha)
@@ -22,27 +22,24 @@ void forward_algorithm(HMM *hmm, Observ *observ, Variable *alpha)
     }
 
     // Induction
-    for (t = 0; t < alpha->seq_num - 1; t++) {
+    for (t = 0; t < alpha->seq_num - 1; t++){
         for (j = 0; j < alpha->state_num; j++) {
-            double sum = 0; // for record the sum of all {alpha[t][i] * a[i][j]}
+            double sum_alpha = 0; // for accumulate the sum of all {alpha[t][i] * a[i][j]}
 
-            for (i = 0; i < hmm->state_num; i++) {
-                sum += alpha->variable[t][i] * hmm->transition[i][j];
+            for (i = 0; i < alpha->state_num; i++){
+                sum_alpha += alpha->variable[t][i] * hmm->transition[i][j];
             }
-
-            alpha->variable[t+1][j] = sum * hmm->observation[observ->obs[t+1]][j]; // alpha[t+1][j] = \sum_i=0^(N-1){alpha[t][i] * a[i][j]} * b[o[t+1]][j]
-                                                                                  // , 0<=t<=T-2, 0<=j<=N-1
+            
+            alpha->variable[t+1][j] = sum_alpha * hmm->observation[observ->obs[t+1]][j]; // alpha[t+1][j] = \sum_i=0^(N-1){alpha[t][i] * a[i][j]} * b[o[t+1]][j]
+                                                                                         // , 0<=t<=T-2, 0<=j<=N-1
         }
     }
 
     // Termination
-    double prob = 0;
-    for (i = 0; i < hmm->state_num; i++) {
-        prob += alpha->variable[observ->seq_num-1][i]; /// P(O|lambda) = \sum_i=0^(N-1){alpha[T-1][i]}
-    }
-
-    return;
-
+    //double prob = 0;
+    //for (i = 0; i < hmm->state_num; i++){
+    //    prob += alpha->variable[observ->seq_num-1][i]; /// P(O|lambda) = \sum_i=0^(N-1){alpha[T-1][i]}
+    //}
 }
 
 
@@ -61,31 +58,60 @@ void backward_algorithm(HMM *hmm, Observ *observ, Variable *beta)
     }
 
     // Induction
-    for (t = beta->seq_num - 2; t >-1 ; t--) {
-        for (j = 0; j < beta->state_num; j++) {
-            double sum = 0; // for record the sum of all {a[i][j] * b[o[t+1]][j] * beta[t+1][j]}
+    for (t = beta->seq_num - 2; t >-1 ; t--){
+        for (j = 0; j < beta->state_num; j++){
+            double sum_beta = 0; // for accumulate the sum of all {a[i][j] * b[o[t+1]][j] * beta[t+1][j]}
 
-            for (i = 0; i < hmm->state_num; i++) {
-                sum += hmm->transition[i][j] * hmm->observation[observ->obs[t+1]][j] * beta->variable[t+1][j];
+            for (i = 0; i < hmm->state_num; i++){
+                sum_beta += hmm->transition[i][j] * hmm->observation[observ->obs[t+1]][j] * beta->variable[t+1][j];
             }
 
-            beta->variable[t][j] = sum; // beta[t][i] = \sum_i=0^(N-1){a[i][j] * b[o[t+1]][j] * beta[t+1][j]}
-                                        // , 0<=t<=T-2, 0<=i<=N-1
+            beta->variable[t][j] = sum_beta; // beta[t][i] = \sum_i=0^(N-1){a[i][j] * b[o[t+1]][j] * beta[t+1][j]}
+                                             // , 0<=t<=T-2, 0<=i<=N-1
         }
     }
-
-    return;
-
 }
 
 // Baum-Welch algorithm: calculate gamma and epsilon
-void baum_welch(HMM *hmm, Observ *observ, Variable *alpha, Variable *beta, Variable *gamma, Epsilon *epsilon)
+void baum_welch(HMM *hmm, Observ *observ, Variable *alpha, Variable *beta, Variable *_gamma, Epsilon *epsilon)
 {
+    int i,j, t;
+    _gamma->seq_num = observ->seq_num;
+    _gamma->state_num = hmm->state_num;
+    epsilon->seq_num = observ->seq_num;
+    epsilon->state_num = hmm->state_num;
 
+    
+    for (t = 0; t < observ->seq_num-1; t++){
+        // P(q_t=i | O, lambda) = gamma[t][i]
+        // gamma[t][i] = (alpha[t][i]*beta[t][i])/(\sum_i=0^(N-1){alpha[t][i]*beta[t][i]})
+    
+        // P(q_t=i, q_(t+1)=j | O, lambda) = epsilon[t][i][j]
+        // epsilon[t][i][j] = (alpha[t][i]*a[i][j]*b[o[t+1]][j]*beta[t+1][j])/(\sum_i=0^(N-1)\sum_j=0^(N-1){alpha[t][i]*a[i][j]*b[o[t+1]][j]*beta[t+1][i]})
+        double sum_gamma=0 , sum_epsilon = 0;
+        for (i = 0; i< hmm->state_num; i++){
+            _gamma->variable[t][i] = alpha->variable[t][i]*beta->variable[t][i];
+            sum_gamma += _gamma->variable[t][i];
+
+            for (j = 0; j<hmm->state_num; j++){
+                epsilon->variable[t][i][j] = alpha->variable[t][i]*hmm->transition[i][j]*\
+                                                hmm->observation[observ->obs[t+1]][j]*beta->variable[t+1][j];
+                sum_epsilon+= epsilon->variable[t][i][j];
+            }
+        }
+
+        // Normalization
+        for (i=0; i<hmm->state_num; i++){
+            _gamma->variable[t][i] /= sum_gamma;
+            for (j=0; j<hmm->state_num; j++){
+                epsilon->variable[t][i][j] /= sum_epsilon;
+            }
+        }
+    }
 }
 
 // Update parameters
-void update_param(HMM *hmm, Observ *observ, Variable *delta, Epsilon *epsilon, int data_num)
+void update_param(HMM *hmm, Observ *observ, Variable *_gamma, Epsilon *epsilon, int sample_num)
 {
 
 }
@@ -99,13 +125,13 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    int i;
-    int data_num; //total number of lines in the data file
+    int i, j;
+    int sample_num; //total number of samples in the data file
 
     const int iter = atoi(argv[1]);
     const char *model_init = argv[2];
     const char *train_data = argv[3];
-    const char *model_file = argv[3];
+    const char *model_file = argv[4];
 
     printf("iter: %d\n", iter);
     printf("model_init: %s\n", model_init);
@@ -117,8 +143,26 @@ int main(int argc, char *argv[])
 	loadHMM( &hmm_initial, model_init);
 	dumpHMM( stderr, &hmm_initial );
 
-    data_num = fetch_data(data, train_data);
-    printf("data_num: %d\n", data_num);
+    sample_num = fetch_data(data, train_data);
+    printf("data_num: %d\n", sample_num);
+
+    // Train the model
+    for (i = 0; i < iter; i++){
+        printf("\n----- iteration: #%d -----\n", i+1);
+        for (j = 0 ;j < sample_num; j++){
+            forward_algorithm(&hmm_initial, &data[j], &alpha[j]);
+            backward_algorithm(&hmm_initial, &data[j], &beta[j]);
+            baum_welch(&hmm_initial, &data[j], &alpha[j], &beta[j], &_gamma[j], &epsilon[j]);
+        }
+        update_param(&hmm_initial, data, _gamma, epsilon, sample_num);
+        dumpHMM(stderr, &hmm_initial);
+    }
+
+    // Save model
+    //printf("Save HMM model file: %s\n", model_file);
+    //FILE *fp = open_or_die(model_file, "w");
+    //dumpHMM(fp, &hmm_initial);
+    //fclose(fp);
 
     return 0;
 }

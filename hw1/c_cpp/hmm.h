@@ -22,9 +22,9 @@
 #	define MAX_LINE 256
 #endif
 
-// Define the maximun line in a data file
-#ifndef MAX_DATA_LINE
-#	define MAX_DATA_LINE	10000
+// Define the maximun number of samples in one data file
+#ifndef MAX_SAMPLE_NUM
+#	define MAX_SAMPLE_NUM 10000
 #endif
 
 typedef struct{
@@ -98,6 +98,7 @@ static void loadHMM( HMM *hmm, const char *filename )
                fscanf(fp, "%lf", &( hmm->observation[i][j]) );
       }
    }
+   fclose(fp);
 }
 
 static void dumpHMM( FILE *fp, HMM *hmm )
@@ -158,7 +159,7 @@ static int fetch_data(Observ *observs, const char *filename)
    FILE *fp = open_or_die( filename, "r" );
 
    char token[MAX_LINE] = "";
-   int line = 0, i, idx;
+   int sample_num = 0, i, idx;
 
    while( fscanf( fp, "%s", token ) > 0 )
    {
@@ -191,17 +192,17 @@ static int fetch_data(Observ *observs, const char *filename)
          }
 
          if (idx == -1){
-            observs[line].seq_num = i;
-            line++;
+            observs[sample_num].seq_num = i;
+            sample_num++;
             break;
          }
          
-         observs[line].obs[i] = idx;
+         observs[sample_num].obs[i] = idx;
       }
    }
 
    fclose(fp);
-   return line;
+   return sample_num;
 
 }
 #endif

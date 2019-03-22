@@ -216,12 +216,26 @@ int main(int argc, char *argv[])
             baum_welch(&hmm_initial, &data[j], &alpha[j], &beta[j], &_gamma[j], &epsilon[j]);
         }
         update_param(&hmm_initial, data, _gamma, epsilon, sample_num);
+        
         dumpHMM(stderr, &hmm_initial);
-        if ( i > 0 && i%250 == 0 ){
+        if ( i > 0 && i < iter-1 && i%250 == 0){
+
             // Save model for every 250 iters
-            char iters[6];
-            sprintf(iters, "%05d", i);
-            strcat(model_file_iter, iters);
+            char iters[10];
+            sprintf(iters, "%05d", i+1);
+            strcat(iters, ".txt");
+
+            char *q = strrchr (model_file_iter, '_');
+            char *ext = strdup (q+1);
+            size_t ext_size = strlen (ext);
+            size_t iters_size = strlen (iters);
+    
+            strncpy (q+1, iters, iters_size);
+            if (iters_size < ext_size)
+                *(q+1+iters_size) = 0;
+
+            if (ext) free (ext);
+
             printf("Save HMM model file: %s\n", model_file_iter);
             FILE *fp = open_or_die(model_file_iter, "w");
             dumpHMM(fp, &hmm_initial);
@@ -229,11 +243,13 @@ int main(int argc, char *argv[])
         }
     }
 
+    dumpHMM(stderr, &hmm_initial);
     // Save model
     printf("Save HMM model file: %s\n", model_file);
-    FILE *fp = open_or_die(model_file, "w");
+    printf("===============================================\n");
+    FILE *fp = open_or_die(model_file_iter, "w");
     dumpHMM(fp, &hmm_initial);
     fclose(fp);
-    
+
     return 0;
 }

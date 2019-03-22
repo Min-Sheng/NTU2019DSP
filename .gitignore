@@ -1,0 +1,9 @@
+/hw1/c_cpp/*.txt
+/hw1/.vscode
+
+!/hw1/c_cpp/modellist.txt
+!/hw1/c_cpp/model_01.txt
+!/hw1/c_cpp/model_02.txt
+!/hw1/c_cpp/model_03.txt
+!/hw1/c_cpp/model_04.txt
+!/hw1/c_cpp/model_05.txt

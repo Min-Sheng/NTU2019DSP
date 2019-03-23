@@ -61,7 +61,7 @@ double viterbi_alorithm(HMM *hmm, Observ *observ, Variable *delta, Variable *psi
 int main(int argc, char *argv[])
 {
     if (argc !=  4){
-        printf("Error: Wrong Command format\n");
+        printf("Error: Wrong command format\n");
         printf("Format: ./test [modellist.txt] [testing_data.txt] [result.txt]\n");
         exit(1);
     }

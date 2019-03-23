@@ -165,7 +165,7 @@ void update_param(HMM *hmm, Observ *data, Variable *_gamma, Epsilon *epsilon, in
 int main(int argc, char *argv[])
 {
     if (argc !=  5){
-        printf("Error: Wrong Command format\n");
+        printf("Error: Wrong command format\n");
         printf("Format: ./train [iteration] [model_init.txt] [seq_model_0x.txt] [model_0x.txt]\n");
         exit(1);
     }

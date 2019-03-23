@@ -150,7 +150,9 @@ static void dump_models( HMM *hmm, const int num )
    int i = 0;
    for( ; i < num ; i++ ){ 
       //		FILE *fp = open_or_die( hmm[i].model_name, "w" );
+      printf("model_%02d\n", i+1);
       dumpHMM( stderr, &hmm[i] );
+      printf("===============================================\n");
    }
 }
 

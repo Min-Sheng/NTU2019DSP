@@ -1,5 +1,8 @@
 /hw1/c_cpp/*.txt
 /hw1/.vscode
+/hw1/c_cpp/train
+/hw1?c_cpp/test
+/hw1/c_cpp/test_hmm
 
 !/hw1/c_cpp/modellist.txt
 !/hw1/c_cpp/model_01.txt

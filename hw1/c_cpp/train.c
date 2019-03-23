@@ -18,8 +18,8 @@ void forward_algorithm(HMM *hmm, Observ *observ, Variable *alpha)
     // Initialization
     for (i = 0; i < alpha->state_num; i++ ){
         alpha->variable[0][i] = hmm->initial[i] * hmm->observation[observ->obs[0]][i]; // alpha[0][i] = pi[i] * b[o[0]][i]
-                                                                                           // , 0<=i<=N-1
-                                                                                           // Here the items start from 0 instead of 1, which is different from the lecture.
+                                                                                       // , 0<=i<=N-1
+                                                                                       // Here the items start from 0 instead of 1, which is different from the lecture.
     }
 
     // Induction

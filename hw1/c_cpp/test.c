@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    int i, j;
+    int i, j, iter;
     int sample_num; //total number of samples in the data file
     int argmax;
     double max, p;
@@ -78,44 +78,95 @@ int main(int argc, char *argv[])
     const char *modellist = argv[1];
     const char *test_data = argv[2];
     const char *result_file = argv[3];
+    
+    char *result_file_iter = (char*) malloc(strlen(result_file) + 1);
+    strcpy(result_file_iter, result_file);
+    char *ext_ptr = strrchr (result_file_iter, '.');
+    size_t ext_size = strlen (ext_ptr);
+    size_t slash_size = strlen ("_");
+
+    strcat(result_file_iter, "_");
+    strncpy (ext_ptr, "_", slash_size);
+    if (slash_size < ext_size)
+        *(ext_ptr+slash_size) = 0;
 
     printf("modellist: %s\n", modellist);
     printf("test_data: %s\n", test_data);
     printf("result_file: %s\n", result_file);
     
-    // Load HMM models
-    HMM hmms[5];
-	load_models( "modellist.txt", hmms, 5);
-	dump_models( hmms, 5);
-
     sample_num = fetch_data(data, test_data);
     printf("data_num: %d\n", sample_num);
 
+    // Load HMM models
+    HMM hmms[5];
+	//load_models( modellist, hmms, 5);
+    for (iter = 250; iter < 3000 ; iter += 250){
+        if (iter == 3000){
 
-    for (i = 0; i < sample_num; i++){
-        max = 0;
-        for (j = 0; j < 5 ;j++){
-            p = viterbi_alorithm(&hmms[j], &data[i], &delta, &psi);
+            load_models( modellist, hmms, 5);
+	        dump_models( hmms, 5);
+
+            // Save result of final iteration
+            printf("Save result file: %s\n", result_file);
             
-            if (p > max){
-                max = p;
-                argmax = j;
+            FILE *fp = open_or_die(result_file, "w");
+
+            for (i = 0; i < sample_num; i++) {
+                fprintf(fp, "%s ", hmms[prediction[i]].model_name);
+                fprintf(fp, "%e\n", probability[i]);
             }
+
+            fclose(fp);
+            
         }
+        else{
+            
+            load_models_by_iter( modellist, hmms, 5, iter);
+	        dump_models_by_iter( hmms, 5, iter);
 
-        prediction[i] = argmax;
-        probability[i] = max;
-    }
+            char iters[10];
+            sprintf(iters, "%05d", iter);
+            strcat(iters, ".txt");
+
+            char *slash_ptr = strrchr (result_file_iter, '_');
+            size_t ext_size = strlen (slash_ptr);
+            size_t iters_size = strlen (iters);
     
-    printf("Save result file: %s\n", result_file);
-    FILE *fp = open_or_die(result_file, "w");
+            strncpy (slash_ptr+1, iters, iters_size);
+            if (iters_size < ext_size)
+                *(slash_ptr+1+iters_size) = 0;
 
-    for (i = 0; i < sample_num; i++) {
-        fprintf(fp, "%s ", hmms[prediction[i]].model_name);
-        fprintf(fp, "%e\n", probability[i]);
+            for (i = 0; i < sample_num; i++){
+                max = 0;
+                for (j = 0; j < 5 ;j++){
+                    p = viterbi_alorithm(&hmms[j], &data[i], &delta, &psi);
+                    
+                    if (p > max){
+                        max = p;
+                        argmax = j;
+                    }
+                }
+
+                prediction[i] = argmax;
+                probability[i] = max;
+            }
+            
+            // Save result of each iteration
+            printf("Save result file: %s\n", result_file_iter);
+            
+            FILE *fp = open_or_die(result_file_iter, "w");
+
+            for (i = 0; i < sample_num; i++) {
+                fprintf(fp, "%s ", hmms[prediction[i]].model_name);
+                fprintf(fp, "%e\n", probability[i]);
+            }
+
+            fclose(fp);
+
+        }
     }
 
-    fclose(fp);
+    if (result_file_iter) free(result_file_iter);
 
     return 0;
 }

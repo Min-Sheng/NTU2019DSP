@@ -10,10 +10,14 @@ int main(int argc, char*argv[])
 
     const char *result_file = argv[1];
 	const char *answer_file = argv[2];
-    const char *acc_file = "acc.txt";
+    const char *acc_file;
+    
 
     if (argc == 4){
-        const char *acc_file = argv[3];
+        acc_file = argv[3];
+    }
+    else{
+        acc_file = "acc.txt";
     }
 
     int TP = 0, N = 0;
@@ -31,9 +35,20 @@ int main(int argc, char*argv[])
         fscanf(fp_answer, "%s", GT);
         //printf("%s", prediction);
         //printf(" %s\n", GT);
-        if (strcmp(prediction, GT) == 0) {
-            TP++;
+        
+        int idx = (int)(strrchr (prediction, '_')-prediction);
+
+        if (idx > 5 ){
+            if (strncmp(prediction, GT, idx) == 0) {
+                TP++;
+            }
+
+        }else{
+            if (strcmp(prediction, GT) == 0) {
+                TP++;
+            }
         }
+        
 
         N++;
     }

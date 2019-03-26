@@ -180,17 +180,14 @@ int main(int argc, char *argv[])
 
     char *model_file_iter = (char*) malloc(strlen(model_file) + 1);
     strcpy(model_file_iter, model_file);
-    char *p = strrchr (model_file_iter, '.');
-    char *ext = strdup (p);
-    size_t ext_size = strlen (ext);
+    char *ext_ptr = strrchr (model_file_iter, '.');
+    size_t ext_size = strlen (ext_ptr);
     size_t slash_size = strlen ("_");
     
     strcat(model_file_iter, "_");
-    strncpy (p, "_", slash_size);
+    strncpy (ext_ptr, "_", slash_size);
     if (slash_size < ext_size)
-        *(p+slash_size) = 0;
-
-    if (ext) free (ext);
+        *(ext_ptr+slash_size) = 0;
 
     printf("iter: %d\n", iter);
     printf("model_init: %s\n", model_init);
@@ -208,8 +205,8 @@ int main(int argc, char *argv[])
     printf("data_num: %d\n", sample_num);
 
     // Train the model
-    for (i = 0; i < iter; i++){
-        printf("\n----- iteration: #%d -----\n", i+1);
+    for (i = 1; i <= iter; i++){
+        printf("\n----- iteration: #%d -----\n", i);
         for (j = 0; j < sample_num; j++){
             forward_algorithm(&hmm_initial, &data[j], &alpha[j]);
             backward_algorithm(&hmm_initial, &data[j], &beta[j]);
@@ -218,38 +215,38 @@ int main(int argc, char *argv[])
         update_param(&hmm_initial, data, _gamma, epsilon, sample_num);
         
         dumpHMM(stderr, &hmm_initial);
-        if ( i > 0 && i < iter-1 && i%250 == 0){
+        if (i < iter && i%25 == 0){
 
             // Save model for every 250 iters
             char iters[10];
-            sprintf(iters, "%05d", i+1);
+            sprintf(iters, "%05d", i);
             strcat(iters, ".txt");
 
-            char *q = strrchr (model_file_iter, '_');
-            char *ext = strdup (q+1);
-            size_t ext_size = strlen (ext);
+            char *slash_ptr = strrchr (model_file_iter, '_');
+            size_t ext_size = strlen (slash_ptr);
             size_t iters_size = strlen (iters);
     
-            strncpy (q+1, iters, iters_size);
+            strncpy (slash_ptr+1, iters, iters_size);
             if (iters_size < ext_size)
-                *(q+1+iters_size) = 0;
-
-            if (ext) free (ext);
+                *(slash_ptr+1+iters_size) = 0;
 
             printf("Save HMM model file: %s\n", model_file_iter);
             FILE *fp = open_or_die(model_file_iter, "w");
             dumpHMM(fp, &hmm_initial);
             fclose(fp);
         }
+        else if(i == iter){
+
+            // Save final model
+            printf("Save HMM model file: %s\n", model_file);
+            printf("===============================================\n");
+            FILE *fp = open_or_die(model_file, "w");
+            dumpHMM(fp, &hmm_initial);
+            fclose(fp);
+        }
     }
 
-    dumpHMM(stderr, &hmm_initial);
-    // Save model
-    printf("Save HMM model file: %s\n", model_file);
-    printf("===============================================\n");
-    FILE *fp = open_or_die(model_file_iter, "w");
-    dumpHMM(fp, &hmm_initial);
-    fclose(fp);
+    if(model_file_iter) free(model_file_iter);
 
     return 0;
 }

@@ -145,12 +145,63 @@ static int load_models( const char *listname, HMM *hmm, const int max_num )
    return count;
 }
 
+static int load_models_by_iter( const char *listname, HMM *hmm, const int max_num , const int iter)
+{
+   FILE *fp = open_or_die( listname, "r" );
+
+   int count = 0;
+   char filename[MAX_LINE] = "";
+   char *model_file_iter = (char*) malloc(strlen(filename) + 1);
+   char iters[10];
+
+   while( fscanf(fp, "%s", filename) == 1 ){
+
+      strcpy(model_file_iter, filename);
+
+      char *ext_ptr = strrchr (model_file_iter, '.');
+      size_t ext_size = strlen (ext_ptr);
+      size_t slash_size = strlen ("_");
+
+      strcat(model_file_iter, "_");
+      strncpy (ext_ptr, "_", slash_size);
+
+      if (slash_size < ext_size)
+         *(ext_ptr+slash_size) = 0;
+
+      sprintf(iters, "%05d", iter);
+      strcat(iters, ".txt");
+      strcat (model_file_iter, iters);
+      //printf("model_iter: %s\n", model_file_iter);
+      loadHMM( &hmm[count], model_file_iter );
+      count ++;
+
+      if( count >= max_num ){
+         return count;
+      }
+   }
+   fclose(fp);
+   if (model_file_iter) free(model_file_iter);
+
+   return count;
+}
+
 static void dump_models( HMM *hmm, const int num )
 {
    int i = 0;
    for( ; i < num ; i++ ){ 
       //		FILE *fp = open_or_die( hmm[i].model_name, "w" );
       printf("model_%02d\n", i+1);
+      dumpHMM( stderr, &hmm[i] );
+      printf("===============================================\n");
+   }
+}
+
+static void dump_models_by_iter( HMM *hmm, const int num, const int iter)
+{
+   int i = 0;
+   for( ; i < num ; i++ ){ 
+      //		FILE *fp = open_or_die( hmm[i].model_name, "w" );
+      printf("model_%02d_%05d\n", i+1, iter);
       dumpHMM( stderr, &hmm[i] );
       printf("===============================================\n");
    }

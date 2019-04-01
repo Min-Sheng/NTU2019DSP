@@ -227,7 +227,7 @@ int main(int argc, char *argv[])
             size_t iters_size = strlen (iters);
     
             strncpy (slash_ptr+1, iters, iters_size);
-            if (iters_size < ext_size)
+            if (iters_size > ext_size)
                 *(slash_ptr+1+iters_size) = 0;
 
             printf("Save HMM model file: %s\n", model_file_iter);

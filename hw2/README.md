@@ -1,4 +1,4 @@
-#Usage
+# Usage
 
 1. Download HTK tools package(htk341_debian_x86_64.tar.gz) as well as this all repository.
 
@@ -26,7 +26,7 @@ $ chmod 744 XXXX.sh
 - 03_training.sh
 - 04_testing.sh
 
-##Note
+## Note
 Every time you modified **any parameter or file**, run 00_clean_all.sh to remove all the files that
 were produced before, and restart all the procedures. If
 not, the new settings will be performed on the previous

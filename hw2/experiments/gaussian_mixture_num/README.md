@@ -7,6 +7,6 @@
 1. Once-for-all: 一次加到指定的 Gaussian mixtures 。
 2. Step-by-step: 再每次 Re-estimate 之前增加 1 個 Gaussian mixtures ，逐步遞增至指定數量。
 
-下圖為兩種策略的 accuracy 結果 (x 軸為 "零~九" 的 Gaussian mixtures 數量， "sil" 則加 1)，可以發現有 Re-estimate 做 fune-tuning 的緣故，　Step-by-step 比 Once-for-all 的方法來的好，增加到 14　個 Gaussian mixtures 時，可達到 98.50% 。
+下圖為兩種策略的 accuracy 結果 (x 軸為 "零~九" 的 Gaussian mixtures 數量， "sil" 則加 1)，可以發現有 Re-estimate 做 fune-tuning 的緣故， Step-by-step 比 Once-for-all 的方法來的好，增加到 14　個 Gaussian mixtures 時，可達到 98.50% 。
 
 <img width="80%" src="https://github.com/Min-Sheng/NTU2019DSP/raw/master/hw2/experiments/gaussian_mixture_num/curves.png"/>

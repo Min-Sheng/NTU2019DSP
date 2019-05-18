@@ -23,13 +23,14 @@ vector<string> splitStr(string str, char delimeter){
 }
 
 int main(void){
-    cout << "Hello mapping!" << endl;
+    //cout << "Hello mapping!" << endl;
 
     // Open Big5-ZhuYin.map
     ifstream B5ZY_f;
     B5ZY_f.open("../Big5-ZhuYin.map");
     if (!B5ZY_f){
         cerr << "'Big5-ZhuYin.map' is not found!" <<endl;
+        exit(1);
     }
 
     // Prepare the string container for each ZY character

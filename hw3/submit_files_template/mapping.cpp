@@ -70,7 +70,7 @@ int main(void){
 	ZYB5_f.open("../ZhuYin-Big5.map");
 	for (int i = 0; i < ZY_num ; i++) {
         // List the ZY characters following their corresponding Chinese characters
-		ZYB5_f << ZY[i].front() << "  ";
+		ZYB5_f << ZY[i].front() << '\t';
 		for(int j = 1 ; j < ZY[i].size() ; j++){
 			ZYB5_f << ZY[i].at(j) << " ";
 		}
@@ -78,7 +78,7 @@ int main(void){
 
         // List the Chinese characters and themself again
 		for (int k = 1 ; k < ZY[i].size() ; k++){
-			ZYB5_f << ZY[i].at(k) << "  " << ZY[i].at(k) << "\n";
+			ZYB5_f << ZY[i].at(k) << '\t' << ZY[i].at(k) << "\n";
 		}
 	}
 

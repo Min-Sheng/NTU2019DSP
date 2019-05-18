@@ -11,17 +11,26 @@ vpath lib%.a $(SRIPATH)/lib/$(MACHINE_TYPE)
 TARGET = mydisambig
 SRC = mydisambig.cpp
 OBJ = $(SRC:.cpp=.o)
+
+TARGET2 = mapping
+SRC2 = mapping.cpp
+OBJ2 = $(SRC2:.cpp=.o)
+
 TO = ZhuYin-Big5.map
 FROM = Big5-ZhuYin.map
 .PHONY: all clean map run
 
-all: $(TARGET)
+all: $(TARGET) $(TARGET2)
 
 $(TARGET): $(OBJ) -loolm -ldstruct -lmisc
 	$(CXX) $(LDFLAGS) -o $@ $^
 
+$(TARGET2): $(OBJ2) -loolm -ldstruct -lmisc
+	$(CXX) $(LDFLAGS) -o $@ $^
+
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $<
+
 run:
 	@#TODO How to run your code toward different txt? 
 	@for i in $(shell seq 1 10) ; do \

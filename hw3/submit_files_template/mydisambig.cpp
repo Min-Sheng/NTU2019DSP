@@ -101,11 +101,11 @@ void Viterbi(VocabString *chars, VocabString *output_chars, unsigned int chars_l
                 c1 = big5.getWord(delta_idx[t-1][i]);
                 likelihood = getBigramProb(voc, lm, c1, c2);
                 
-                if (likelihood == LogP_Zero) { // If prob too small, backoff to unigram
+                if (likelihood == LogP_Zero) { // If likelihood too small, backoff to unigram
                     likelihood = getUigramProb(voc, lm, c2);
                 }
                 
-                likelihood += delta[t-1][i]; // Sum up to get total prob
+                likelihood += delta[t-1][i]; // Sum up to get total likelihood
 
 
                 if (likelihood > max_likelihood) { // Find maximum likelihood

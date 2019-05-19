@@ -4,7 +4,8 @@
 #include <stdlib.h>
 
 #ifndef MAX_CANDIDATE
-    #define MAX_CANDIDATE 1050 // Maximum number of candidate for one zhuyin is 1014
+    #define MAX_CANDIDATE 1024 // Maximum number of the candidate chinese characters 
+                               // for one zhuyin character is 1024
 #endif
 
 using namespace std;
@@ -61,60 +62,61 @@ void argParser(int argc, char* argv[]){
  * Viterbi algorithm
  */
 void Viterbi(VocabString *chars, VocabString *output_chars, unsigned int chars_length,\
-            Vocab &voc, Vocab &big5, Vocab &zhuyin, VocabIndex &big5_idx, VocabMap &map, Ngram &lm){
+            Vocab &voc, Vocab &big5, Vocab &zhuyin, VocabIndex &big5Chi_idx, VocabMap &map, Ngram &lm){
 
     /**
      * 1) Initialization
      */
     int i, t;
-    LogP delta[chars_length][MAX_CANDIDATE];
-    VocabIndex delta_index[chars_length][MAX_CANDIDATE]; // Store big5 index in each entry
-    int psi[chars_length][MAX_CANDIDATE]; // For path backtracking
-    int num_candidate[chars_length]; // Number of candidate at each time step
+    LogP delta[chars_length][MAX_CANDIDATE]; // Store the highest likelihood
+    VocabIndex delta_idx[chars_length][MAX_CANDIDATE]; // Store big5 Chinese character index
+    int psi[chars_length][MAX_CANDIDATE]; // Store backtracking index for path backtracking
+    int num_candidate[chars_length]; // Number of candidate chinese characters at each time step
 
     // All sentence start from "<s>" with probability of 1
     delta[0][0] = LogP_One;
-    delta_index[0][0] = big5.getIndex(Vocab_SentStart);
+    delta_idx[0][0] = big5.getIndex(Vocab_SentStart);
     num_candidate[0] = 1;
 
     /**
      * 2) Recursion
      */
     for (t = 1; t < chars_length; t++) {
-        VocabMapIter map_iter(map, zhuyin.getIndex(chars[t])); // VocabMapIter(VocabMap &vmap, VocabIndex w);			
-        VocabString w1, w2;
-        LogP prob, max_prob;
+        VocabMapIter map_iter(map, zhuyin.getIndex(chars[t])); // Use VocabMapIter(VocabMap &vmap, VocabIndex c) to traversal
+                                                               // all chinese characters corresponding to each zhuyin character
+        VocabString c1, c2; // Bigram (neighboring chinese characters)
+        LogP likelihood, max_likelihood;
         Prob p; // Useless
-        int best_w1, candidate_cnt = 0;
+        int best_c1, candidate_cnt = 0;
 
-        while (map_iter.next(big5_idx, p)) { // VocabMapIter.next(VocabIndex &w, Prob &prob);
-            w2 = big5.getWord(big5_idx); // w2 = candidate word
-            if (voc.getIndex(w2) == Vocab_None) {
-                w2 = Vocab_Unknown;
+        while (map_iter.next(big5Chi_idx, p)) { // VocabMapIter.next(VocabIndex &c, Prob &prob);
+            c2 = big5.getWord(big5Chi_idx); // c2 = candidate character
+            if (voc.getIndex(c2) == Vocab_None) { // Replace OOV with <unk>
+                c2 = Vocab_Unknown;
             }
 
             // Iterate over every candidates at last time step
-            max_prob = LogP_Zero;
+            max_likelihood = LogP_Zero;
             for (i = 0; i < num_candidate[t-1]; i++) {
-                w1 = big5.getWord(delta_index[t-1][i]);
-                prob = getBigramProb(voc, lm, w1, w2);
-                // If prob too small, backoff to unigram
-                if (prob == LogP_Zero) { // TODO: check if small enough
-                    prob = getUigramProb(voc, lm, w2);
+                c1 = big5.getWord(delta_idx[t-1][i]);
+                likelihood = getBigramProb(voc, lm, c1, c2);
+                
+                if (likelihood == LogP_Zero) { // If prob too small, backoff to unigram
+                    likelihood = getUigramProb(voc, lm, c2);
                 }
                 
-                // Get total prob
-                prob += delta[t-1][i];
+                likelihood += delta[t-1][i]; // Sum up to get total prob
 
-                if (prob > max_prob) {
-                    max_prob = prob;
-                    best_w1 = i;
+
+                if (likelihood > max_likelihood) { // Find maximum likelihood
+                    max_likelihood = likelihood;
+                    best_c1 = i;
                 }
             }
 
-            delta[t][candidate_cnt] = max_prob;
-            delta_index[t][candidate_cnt] = big5.getIndex(w2);
-            psi[t][candidate_cnt] = best_w1;
+            delta[t][candidate_cnt] = max_likelihood;
+            delta_idx[t][candidate_cnt] = big5.getIndex(c2);
+            psi[t][candidate_cnt] = best_c1;
 
             candidate_cnt++;
         }
@@ -125,13 +127,13 @@ void Viterbi(VocabString *chars, VocabString *output_chars, unsigned int chars_l
     /**
      * 3) Termination
      */
-    LogP max_prob = LogP_Zero;
+    LogP max_likelihood = LogP_Zero;
     int bt_index; // Backtrack index
 
     for (i = 0; i < num_candidate[chars_length-1]; i++) {
-        if (delta[chars_length-1][i] > max_prob) {
-            max_prob = delta[chars_length-1][i];
-            output_chars[chars_length-1] = big5.getWord(delta_index[chars_length-1][i]);
+        if (delta[chars_length-1][i] > max_likelihood) {
+            max_likelihood = delta[chars_length-1][i];
+            output_chars[chars_length-1] = big5.getWord(delta_idx[chars_length-1][i]);
             bt_index = i;
         }
     }
@@ -141,12 +143,12 @@ void Viterbi(VocabString *chars, VocabString *output_chars, unsigned int chars_l
      */
     for (t = chars_length - 2; t >= 0; t--) {
         bt_index = psi[t+1][bt_index];
-        output_chars[t] = big5.getWord(delta_index[t][bt_index]);
+        output_chars[t] = big5.getWord(delta_idx[t][bt_index]);
     }
 
     /**
-     * Check if words change from big5 to <unk>,
-     * return them back to original words
+     * Check if characters change from big5 to <unk>,
+     * return them back to original characters
      */
     for (t = 0; t < chars_length; t++) {
         if (strcmp(chars[t], Vocab_Unknown) && !strcmp(output_chars[t], Vocab_Unknown)) {
@@ -181,8 +183,8 @@ int main(int argc, char* argv[]){
     //cout << arg_order << endl; 
 
     
-    Vocab voc, zhuyin, big5;
-    VocabIndex big5_idx;
+    Vocab voc, zhuyin, big5Chi;
+    VocabIndex big5Chi_idx;
 
     /**
      * Read the language model
@@ -197,7 +199,7 @@ int main(int argc, char* argv[]){
     /**
      * Read the map
      */
-    VocabMap map(zhuyin, big5);	
+    VocabMap map(zhuyin, big5Chi);	
     {
         File map_file(arg_map, "r");
         map.read(map_file);
@@ -225,7 +227,6 @@ int main(int argc, char* argv[]){
          * 
          * characters = ["<s>", "char_1", "char_2", ..., "char_n", "</s>"]
         */
-
         VocabString characters[maxWordsPerLine];
         unsigned int length;
         length = Vocab::parseWords(line, &(characters[1]), maxWordsPerLine);
@@ -233,9 +234,15 @@ int main(int argc, char* argv[]){
         characters[length+1] = Vocab_SentEnd; // Vocab_SentEnd = "</s>"
         length += 2;
 
+        /**
+         * Start running Viterbi algo.
+         */
         VocabString output_characters[length];
-        Viterbi(characters, output_characters, length, voc, big5, zhuyin, big5_idx, map, lm);
+        Viterbi(characters, output_characters, length, voc, big5Chi, zhuyin, big5Chi_idx, map, lm);
         
+        /**
+         * Output the result
+         */
         for (int i = 0; i < length; i++) {
             cout << output_characters[i];
             if (i == length - 1) {
